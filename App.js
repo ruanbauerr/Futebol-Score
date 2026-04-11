@@ -1,39 +1,58 @@
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import dayjs from 'dayjs';
 import { COLORS, SPACING } from './src/constants/theme';
 import DateSelector from './src/components/DateSelector';
+import { useFixtures } from './src/hooks/useFixtures';
 
 export default function App() {
   const [selectedDate, setSelectedDate] = useState(dayjs());
+  const { fixtures, loading, refreshing, error, refresh } = useFixtures(selectedDate);
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <StatusBar style="light" backgroundColor="#0A0E1A" />
+        <StatusBar style="light" />
 
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>
             Football <Text style={styles.accent}>Live</Text>
           </Text>
         </View>
 
-        {/* Seletor de data */}
-        <DateSelector
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-        />
+        <DateSelector selectedDate={selectedDate} onDateChange={setSelectedDate} />
 
-        {/* Placeholder do conteúdo */}
-        <View style={styles.center}>
-          <Text style={styles.dateText}>
-            📅 {selectedDate.format('DD/MM/YYYY')}
-          </Text>
-          <Text style={styles.sub}>header + data </Text>
-        </View>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={COLORS.accent} />
+          </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={fixtures}
+            keyExtractor={(item) => String(item.fixture.id)}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={COLORS.accent} />
+            }
+            ListEmptyComponent={
+              <View style={styles.center}>
+                <Text style={styles.mutedText}>Nenhum jogo neste dia.</Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.row}>
+                <Text style={styles.rowText}>
+                  {item.teams.home.name} x {item.teams.away.name}
+                </Text>
+              </View>
+            )}
+          />
+        )}
 
       </SafeAreaView>
     </SafeAreaProvider>
@@ -41,37 +60,23 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text,
+  title: { fontSize: 22, fontWeight: '800', color: COLORS.text },
+  accent: { color: COLORS.accent },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorText: { color: COLORS.live, fontSize: 14 },
+          mutedText: { color: COLORS.textMuted, fontSize: 14 },
+  row: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  accent: {
-    color: COLORS.accent,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  dateText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  sub: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
+  rowText: { color: COLORS.text, fontSize: 14 },
 });
